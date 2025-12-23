@@ -48,10 +48,6 @@ function addParsedVariablesToQueryVariables(clean, vs) {
 
   // ==== add admin components [postfix] ====
   if (!_.isEmpty(clean.parsed_text.admin)) {
-    // CUSTOM LOG: Check what admin value is being set
-    logger.info('[LOCALITY DEBUG] text_parser - parsed_text.admin:', clean.parsed_text.admin);
-    logger.info('[LOCALITY DEBUG] text_parser - parsed_text full:', JSON.stringify(clean.parsed_text));
-    
     // assign postfix to any admin fields which currently don't have a value assigned.
     
     // cycle through fields and set fields which are still currently unset
@@ -59,7 +55,6 @@ function addParsedVariablesToQueryVariables(clean, vs) {
       if (!vs.isset('input:' + key)) {
         vs.var('input:' + key, clean.parsed_text.admin);
         vs.var('input:' + key + '_a', clean.parsed_text.admin);
-        logger.info('[LOCALITY DEBUG] text_parser - set input:' + key + ' to:', clean.parsed_text.admin);
       }
     });
   }
