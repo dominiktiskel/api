@@ -72,11 +72,11 @@ module.exports = _.merge({}, peliasQuery.defaults, {
 
   'admin:region:analyzer': 'peliasAdmin',
   'admin:region:field': 'parent.region.ngram',
-  'admin:region:boost': 1,
+  'admin:region:boost': 3,
 
   'admin:region_a:analyzer': 'peliasAdmin',
   'admin:region_a:field': 'parent.region_a.ngram',
-  'admin:region_a:boost': 1,
+  'admin:region_a:boost': 3,
 
   'admin:macroregion:analyzer': 'peliasAdmin',
   'admin:macroregion:field': 'parent.macroregion.ngram',
@@ -84,7 +84,7 @@ module.exports = _.merge({}, peliasQuery.defaults, {
 
   'admin:county:analyzer': 'peliasAdmin',
   'admin:county:field': 'parent.county.ngram',
-  'admin:county:boost': 1,
+  'admin:county:boost': 5,
 
   'admin:macrocounty:analyzer': 'peliasAdmin',
   'admin:macrocounty:field': 'parent.macrocounty.ngram',
@@ -92,11 +92,11 @@ module.exports = _.merge({}, peliasQuery.defaults, {
 
   'admin:localadmin:analyzer': 'peliasAdmin',
   'admin:localadmin:field': 'parent.localadmin.ngram',
-  'admin:localadmin:boost': 1,
+  'admin:localadmin:boost': 8,
 
   'admin:locality:analyzer': 'peliasAdmin',
   'admin:locality:field': 'parent.locality.ngram',
-  'admin:locality:boost': 1,
+  'admin:locality:boost': 10,
 
   'admin:locality_a:analyzer': 'peliasAdmin',
   'admin:locality_a:field': 'parent.locality_a.ngram',
@@ -104,11 +104,11 @@ module.exports = _.merge({}, peliasQuery.defaults, {
 
   'admin:neighbourhood:analyzer': 'peliasAdmin',
   'admin:neighbourhood:field': 'parent.neighbourhood.ngram',
-  'admin:neighbourhood:boost': 1,
+  'admin:neighbourhood:boost': 12,
 
   'admin:borough:analyzer': 'peliasAdmin',
   'admin:borough:field': 'parent.borough.ngram',
-  'admin:borough:boost': 1,
+  'admin:borough:boost': 10,
 
   // an additional 'name' field to add to admin multi-match queries.
   // this is used to improve venue matching in cases where the we
