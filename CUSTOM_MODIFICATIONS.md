@@ -10,16 +10,51 @@ This fork contains custom modifications to use a customized version of pelias-qu
 ## Version
 
 - **Base version**: pelias/api master (as of December 2025)
-- **Custom version**: v1.0.0
-- **Docker image**: `tiskel/pelias-api:v1.0.0`
+- **Custom version**: v1.0.2
+- **Docker image**: `tiskel/pelias-api:v1.0.2`
 
 ## Changes
 
-### 1. Custom pelias-query Dependency (package.json)
+### 1. Fixed Admin Locality Boost Values (query/autocomplete_defaults.js)
+
+**Problem**: When searching "Street, City", Pelias did not prioritize results from the specified city. The root cause was that `query/autocomplete_defaults.js` had all admin boost values hardcoded to 1, overriding any values from `pelias-query/defaults.json`.
+
+**Solution**: Updated boost values directly in `query/autocomplete_defaults.js`:
+
+```javascript
+// Before (all were 1)
+'admin:locality:boost': 1,
+'admin:localadmin:boost': 1,
+'admin:county:boost': 1,
+'admin:region:boost': 1,
+'admin:neighbourhood:boost': 1,
+'admin:borough:boost': 1,
+
+// After
+'admin:locality:boost': 10,     // Highest priority for city matching
+'admin:localadmin:boost': 8,
+'admin:borough:boost': 10,
+'admin:county:boost': 5,
+'admin:region:boost': 3,
+'admin:neighbourhood:boost': 12, // Most granular
+```
+
+**Impact**: When searching "Akacjowa, Wrocław", results from Wrocław now appear first instead of being mixed with other localities.
+
+**Files Modified**:
+- `query/autocomplete_defaults.js` (lines 73-111)
+
+**Commits**: 
+- `d3d94b9d` - "Fix admin locality boost values in autocomplete defaults"
+- `66a8a9cc` - "Remove debug logging, release v1.0.2"
+
+### 2. Custom pelias-query Dependency (package.json)
 
 **Problem**: Default pelias-query uses equal boost weights (1) for all admin fields, resulting in poor city matching in autocomplete.
 
 **Solution**: Changed pelias-query dependency to use custom fork with increased locality boost weights.
+
+**Note**: This change was later found to be ineffective because `query/autocomplete_defaults.js` was overriding the values. Kept for consistency with upstream pelias-query improvements.
 
 **Modified**:
 ```json
@@ -70,20 +105,20 @@ USER pelias
 
 ## Docker Image Details
 
-**Image name**: `tiskel/pelias-api:v1.0.0`
+**Image name**: `tiskel/pelias-api:v1.0.2`
 
 **Build command**:
 ```bash
 cd api
-docker build -t tiskel/pelias-api:v1.0.0 .
-docker push tiskel/pelias-api:v1.0.0
+docker build -t tiskel/pelias-api:v1.0.2 .
+docker push tiskel/pelias-api:v1.0.2
 ```
 
 **Usage in docker-compose.yml**:
 ```yaml
 services:
   api:
-    image: tiskel/pelias-api:v1.0.0
+    image: tiskel/pelias-api:v1.0.2
     # ... rest of config
 ```
 
