@@ -10,8 +10,8 @@ This fork contains custom modifications to use a customized version of pelias-qu
 ## Version
 
 - **Base version**: pelias/api master (as of December 2025)
-- **Custom version**: v1.0.0-locality-boost
-- **Docker image**: `tiskel/pelias-api:v1.0.0-locality-boost`
+- **Custom version**: v1.0.0
+- **Docker image**: `tiskel/pelias-api:v1.0.0`
 
 ## Changes
 
@@ -56,20 +56,20 @@ This fork contains custom modifications to use a customized version of pelias-qu
 
 ## Docker Image Details
 
-**Image name**: `tiskel/pelias-api:v1.0.0-locality-boost`
+**Image name**: `tiskel/pelias-api:v1.0.0`
 
 **Build command**:
 ```bash
 cd api
-docker build -t tiskel/pelias-api:v1.0.0-locality-boost .
-docker push tiskel/pelias-api:v1.0.0-locality-boost
+docker build -t tiskel/pelias-api:v1.0.0 .
+docker push tiskel/pelias-api:v1.0.0
 ```
 
 **Usage in docker-compose.yml**:
 ```yaml
 services:
   api:
-    image: tiskel/pelias-api:v1.0.0-locality-boost
+    image: tiskel/pelias-api:v1.0.0
     # ... rest of config
 ```
 
