@@ -190,9 +190,14 @@ function generateQuery( clean ){
     vs.var('admin:add_name_lang_to_multimatch:field', field);
   }
 
+  const renderedQuery = query.render(vs);
+  
+  // CUSTOM LOG: Show final Elasticsearch query
+  console.log('[LOCALITY DEBUG] Final ES query:', JSON.stringify(renderedQuery, null, 2));
+  
   return {
     type: 'autocomplete',
-    body: query.render(vs)
+    body: renderedQuery
   };
 }
 

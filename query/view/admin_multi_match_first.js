@@ -22,8 +22,15 @@ module.exports = function (adminFields) {
     // TODO: handle the case where not all admin area input values are the same
     var tokens = vs.var('input:' + valid_admin_properties[0]).get().split(/\s+/g).filter(t => t.length > 0);
 
+    // CUSTOM LOG: Check admin matching
+    console.log('[LOCALITY DEBUG] admin_multi_match_first - valid_admin_properties:', valid_admin_properties);
+    console.log('[LOCALITY DEBUG] admin_multi_match_first - tokens:', tokens, 'length:', tokens.length);
+
     // no valid tokens to use, fail now, don't render this view.
-    if (!tokens || tokens.length < 2) { return null; }
+    if (!tokens || tokens.length < 2) { 
+      console.log('[LOCALITY DEBUG] admin_multi_match_first - SKIPPED (tokens < 2)');
+      return null; 
+    }
 
     // make a copy Vars so we don't mutate the original
     var vsCopy = new peliasQuery.Vars(vs.export());
