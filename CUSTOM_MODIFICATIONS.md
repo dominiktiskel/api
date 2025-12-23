@@ -35,24 +35,38 @@ This fork contains custom modifications to use a customized version of pelias-qu
 
 **Commit**: `ee326a62` - "Use custom fork of pelias-query with improved locality boost"
 
-### 2. Disabled Tests in Dockerfile
+### 2. Fixed Windows Line Endings (CRLF) in Dockerfile
 
-**Problem**: Tests fail in Docker build due to missing bin/units script in container context.
+**Problem**: When building on Windows, shell scripts in `bin/` directory contain CRLF line endings, causing "no such file or directory" errors when running on Linux containers.
 
-**Solution**: Commented out `RUN npm test` in Dockerfile. Tests pass in upstream, so safe to skip in custom build.
+**Solution**: Modified Dockerfile to convert CRLF to LF and set execute permissions as root user before switching to pelias user.
 
 **Modified**:
 ```dockerfile
-# skip tests for custom build (tests already pass in upstream)
-# RUN npm test
+# Fix Windows line endings (CRLF -> LF) for shell scripts as root
+RUN find . -type f -name "*.sh" -exec sed -i 's/\r$//' {} \; && \
+    find ./bin -type f -exec sed -i 's/\r$//' {} \; && \
+    chmod +x ./bin/*
+
+# Fix ownership for pelias user
+RUN chown -R pelias:pelias ${WORKDIR}
+
+# Switch to pelias user
+USER pelias
 ```
 
-**Additional**: Fixed ENV format from legacy `ENV WORKDIR /code/pelias/api` to modern `ENV WORKDIR=/code/pelias/api`
+**Additional changes**:
+- Disabled tests in Docker build (tests pass in upstream)
+- Fixed ENV format from legacy `ENV WORKDIR /code/pelias/api` to modern `ENV WORKDIR=/code/pelias/api`
+- Reorganized Dockerfile to copy files as root first, then fix line endings/permissions, then switch to pelias user
 
 **Files Modified**:
-- `Dockerfile` (lines 6, 16-17)
+- `Dockerfile` (complete restructure)
 
-**Commit**: `64764e93` - "Disable tests in Dockerfile for custom build"
+**Commits**: 
+- `64764e93` - "Disable tests in Dockerfile for custom build"
+- `4ed1cd96` - "Fix Windows line endings (CRLF) in shell scripts"
+- `8ac92ab2` - "Fix Dockerfile to handle line endings conversion as root user"
 
 ## Docker Image Details
 
