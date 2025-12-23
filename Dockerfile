@@ -13,6 +13,10 @@ RUN npm install
 
 COPY . ${WORKDIR}
 
+# Fix Windows line endings (CRLF -> LF) for shell scripts
+RUN find . -type f -name "*.sh" -exec sed -i 's/\r$//' {} \; && \
+    find ./bin -type f -exec sed -i 's/\r$//' {} \;
+
 # skip tests for custom build (tests already pass in upstream)
 # RUN npm test
 
