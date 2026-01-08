@@ -160,6 +160,28 @@ function isNameDifferent(item1, item2, requestLanguage){
   // note: this really shouldn't happen as name is a mandatory field
   if( !isPojo1 || !isPojo2 ){ return false; }
 
+  // CUSTOM: For venue layer, compare only the primary name (first element)
+  // not all aliases. This allows multiple venues at the same location
+  // with the same type (e.g., two car repair shops) to both appear in results.
+  const isVenue1 = _.get(item1, 'layer') === 'venue' || !_.includes( canonicalLayers, _.get(item1, 'layer') );
+  const isVenue2 = _.get(item2, 'layer') === 'venue' || !_.includes( canonicalLayers, _.get(item2, 'layer') );
+  
+  if (isVenue1 && isVenue2) {
+    // For venues, only compare the primary (first) name, ignore aliases
+    const primaryName1 = field.getArrayValue(names1.default)[0];
+    const primaryName2 = field.getArrayValue(names2.default)[0];
+    
+    if (primaryName1 && primaryName2) {
+      const normalized1 = normalizeString(field.getStringValue(primaryName1));
+      const normalized2 = normalizeString(field.getStringValue(primaryName2));
+      
+      // If primary names are different, these are different venues
+      if (normalized1 !== normalized2) {
+        return true;
+      }
+    }
+  }
+
   // apply 'layer dependent normalization' to the names
   // this ensures that 'Foo' and 'City of Foo' match for localities.
   names1 = layerDependentNormalization(names1, _.get(item1, 'layer'));
@@ -244,12 +266,69 @@ function isGeonamesConcordanceSame(item1, item2) {
 }
 
 /**
+ * CUSTOM: Check if two OSM records are alternative names of the same POI.
+ * This happens when we import multiple name variants from OSM:
+ * - name (no suffix)
+ * - official_name (_official)
+ * - short_name (_short)
+ * - alt_name (_alt1, _alt2, _alt3, ...)
+ * Returns true if they are the same POI (should be deduplicated).
+ */
+function isOsmAlternativeNameDuplicate(item1, item2) {
+  // Only applies to OSM records
+  if (item1.source !== 'openstreetmap' || item2.source !== 'openstreetmap') {
+    return false;
+  }
+
+  // Get source_id without any alternative name suffix
+  // Suffixes: _official, _short, _alt1, _alt2, _alt3, etc.
+  const getBaseSourceId = (sourceId) => {
+    if (!sourceId) return null;
+    // Remove _official, _short, _alt1, _alt2, etc.
+    return sourceId.replace(/_(official|short|alt\d+)$/, '');
+  };
+
+  const baseId1 = getBaseSourceId(item1.source_id);
+  const baseId2 = getBaseSourceId(item2.source_id);
+
+  // If base IDs are different, these are different POIs
+  if (!baseId1 || !baseId2 || baseId1 !== baseId2) {
+    return false;
+  }
+
+  // Same base ID - check if they have the same original_name in addendum.osm
+  const osm1 = _.get(item1, 'addendum.osm');
+  const osm2 = _.get(item2, 'addendum.osm');
+
+  if (!osm1 || !osm2) {
+    return false;
+  }
+
+  // Decode JSON if needed
+  const osmData1 = _.isString(osm1) ? JSON.parse(osm1) : osm1;
+  const osmData2 = _.isString(osm2) ? JSON.parse(osm2) : osm2;
+
+  const originalName1 = osmData1.original_name;
+  const originalName2 = osmData2.original_name;
+
+  // If they have the same original_name, they are duplicates
+  if (originalName1 && originalName2 && originalName1 === originalName2) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Compare the two records and return true if they differ and false if same.
  * Optionally provide $requestLanguage (req.clean.lang.iso6393) to improve name deduplication.
  */
 function isDifferent(item1, item2, requestLanguage){
   // records that share a geonames concordance are the same, regardless of any other checks
   if( isGeonamesConcordanceSame( item1, item2 ) ){ return false; }
+
+  // CUSTOM: OSM records with same base source_id and original_name are duplicates (name vs official_name)
+  if( isOsmAlternativeNameDuplicate( item1, item2 ) ){ return false; }
 
   if( isLayerDifferent( item1, item2 ) ){ return true; }
   if( isParentHierarchyDifferent( item1, item2 ) ){ return true; }

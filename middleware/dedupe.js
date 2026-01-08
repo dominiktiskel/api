@@ -66,6 +66,29 @@ function dedupeResults(req, res, next) {
 // to the hit in the first argument
 function isPreferred(existingHit, candidateHit) {
 
+  // CUSTOM: prefer OSM records with primary names over alternative names
+  // Preference order: no suffix > _short > _official > _alt1 > _alt2 > ...
+  // This ensures we show "Publiczne Przedszkole LiPi" instead of alternative names
+  if (existingHit.source === 'openstreetmap' && candidateHit.source === 'openstreetmap') {
+    const getNameTypePriority = (sourceId) => {
+      if (!sourceId) return 0;
+      if (!sourceId.match(/_(official|short|alt\d+)$/)) return 0; // No suffix = highest priority
+      if (sourceId.endsWith('_short')) return 1;
+      if (sourceId.endsWith('_official')) return 2;
+      // _alt1, _alt2, _alt3, ... extract the number for sorting
+      const altMatch = sourceId.match(/_alt(\d+)$/);
+      if (altMatch) return 3 + parseInt(altMatch[1]); // alt1=4, alt2=5, alt3=6, ...
+      return 999; // Unknown suffix
+    };
+    
+    const existingPriority = getNameTypePriority(existingHit.source_id);
+    const candidatePriority = getNameTypePriority(candidateHit.source_id);
+    
+    // Lower priority number = better (prefer candidate if it has lower number)
+    if (candidatePriority < existingPriority) { return true; }
+    if (existingPriority < candidatePriority) { return false; }
+  }
+
   // prefer a record with a postcode
   // https://github.com/pelias/api/issues/872
   if( !_.has(existingHit, 'address_parts.zip') &&
