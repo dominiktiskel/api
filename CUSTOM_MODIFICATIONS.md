@@ -10,8 +10,8 @@ This fork contains custom modifications to use a customized version of pelias-qu
 ## Version
 
 - **Base version**: pelias/api master (as of December 2025)
-- **Custom version**: v1.0.2
-- **Docker image**: `tiskel/pelias-api:v1.0.2`
+- **Custom version**: v1.0.3
+- **Docker image**: `tiskel/pelias-api:v1.0.3`
 
 ## Changes
 
@@ -48,7 +48,50 @@ This fork contains custom modifications to use a customized version of pelias-qu
 - `d3d94b9d` - "Fix admin locality boost values in autocomplete defaults"
 - `66a8a9cc` - "Remove debug logging, release v1.0.2"
 
-### 2. Custom pelias-query Dependency (package.json)
+### 2. Always Return Category Field in API Response (v1.0.3)
+
+**Problem**: The `category` field was only included in API responses when the user explicitly passed a `?categories=...` parameter in the query. This was due to a conditional check `condition: checkCategoryParam` in `helper/geojsonify_place_details.js`. The `categories` parameter should be used for **filtering** results, not for **controlling** whether the category field is displayed in the response.
+
+**Impact**: POI type information (e.g., bus_stop, place_of_worship, restaurant) was never visible in API responses, even when present in Elasticsearch, making it impossible to:
+- Display appropriate icons for POIs in the UI
+- Understand what type of POI a result represents
+- Use category data in client applications
+
+**Solution**: Removed the `condition: checkCategoryParam` from the category field definition, making categories always visible in API responses when present in the source data.
+
+**Modified**:
+```javascript
+// Before (line 60)
+{ name: 'category', type: 'array', condition: checkCategoryParam }
+
+// After
+{ name: 'category', type: 'array' }
+```
+
+**Result**:
+- Categories now always appear in API responses when available
+- The `?categories=...` parameter still works for **filtering** results
+- POI type information is now accessible to client applications
+
+**Example Response (After)**:
+```json
+{
+  "properties": {
+    "id": "way/315916061",
+    "name": "Kościół św. Stanisława Biskupa i Męczennika",
+    "layer": "venue",
+    "category": ["religion"]
+  }
+}
+```
+
+**Files Modified**:
+- `helper/geojsonify_place_details.js` (line 60, removed condition)
+- `helper/geojsonify_place_details.js` (lines 73-75, removed unused `checkCategoryParam` function)
+
+**Commit**: [pending]
+
+### 3. Custom pelias-query Dependency (package.json)
 
 **Problem**: Default pelias-query uses equal boost weights (1) for all admin fields, resulting in poor city matching in autocomplete.
 
@@ -70,7 +113,7 @@ This fork contains custom modifications to use a customized version of pelias-qu
 
 **Commit**: `ee326a62` - "Use custom fork of pelias-query with improved locality boost"
 
-### 2. Fixed Windows Line Endings (CRLF) in Dockerfile
+### 4. Fixed Windows Line Endings (CRLF) in Dockerfile
 
 **Problem**: When building on Windows, shell scripts in `bin/` directory contain CRLF line endings, causing "no such file or directory" errors when running on Linux containers.
 
@@ -105,20 +148,20 @@ USER pelias
 
 ## Docker Image Details
 
-**Image name**: `tiskel/pelias-api:v1.0.2`
+**Image name**: `tiskel/pelias-api:v1.0.3`
 
 **Build command**:
 ```bash
 cd api
-docker build -t tiskel/pelias-api:v1.0.2 .
-docker push tiskel/pelias-api:v1.0.2
+docker build -t tiskel/pelias-api:v1.0.3 .
+docker push tiskel/pelias-api:v1.0.3
 ```
 
 **Usage in docker-compose.yml**:
 ```yaml
 services:
   api:
-    image: tiskel/pelias-api:v1.0.2
+    image: tiskel/pelias-api:v1.0.3
     # ... rest of config
 ```
 
