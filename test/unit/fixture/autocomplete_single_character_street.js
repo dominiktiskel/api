@@ -34,7 +34,15 @@ module.exports = {
           'type': 'cross_fields'
         }
       }],
-      'should':[
+      'should':[{
+        'match': {
+          'address_parts.street': {
+            'analyzer': 'peliasQuery',
+            'boost': 1,
+            'query': 'k road'
+          }
+        }
+      },
         {
         'function_score': {
           'query': {
@@ -72,7 +80,7 @@ module.exports = {
       }]
     }
   },
-  'sort': [ '_score' ],
   'size': 20,
-  'track_scores': true
+  'track_scores': true,
+  'sort': [ '_score' ]
 };

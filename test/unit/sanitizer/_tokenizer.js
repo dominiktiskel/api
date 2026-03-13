@@ -172,8 +172,8 @@ module.exports.tests.sanity_checks = function(test, common) {
 
     // favor clean.parsed_text.subject over clean.text
     t.deepEquals(clean.tokens, [ 'foo' ], 'use clean.parsed_text.subject');
-    t.deepEquals(clean.tokens_complete, [ 'foo' ], 'complete');
-    t.deepEquals(clean.tokens_incomplete, [ ], 'incomplete');
+    t.deepEquals(clean.tokens_complete, [ ], 'complete');
+    t.deepEquals(clean.tokens_incomplete, [ 'foo' ], 'incomplete');
 
     // no errors/warnings produced
     t.deepEquals(messages.errors, [], 'no errors');
@@ -190,10 +190,10 @@ module.exports.tests.sanity_checks = function(test, common) {
     }, text: 'bar' };
     var messages = sanitizer.sanitize({}, clean);
 
-    // favor clean.parsed_text.subject over clean.text
-    t.deepEquals(clean.tokens, [ '190', 'foo', 'st' ], 'use street name + housenumber');
-    t.deepEquals(clean.tokens_complete, [ '190', 'foo' ], 'complete');
-    t.deepEquals(clean.tokens_incomplete, [ 'st' ], 'incomplete');
+    // housenumber placed last for prefix/ngram matching
+    t.deepEquals(clean.tokens, [ 'foo', 'st', '190' ], 'use street name + housenumber');
+    t.deepEquals(clean.tokens_complete, [ 'foo', 'st' ], 'complete');
+    t.deepEquals(clean.tokens_incomplete, [ '190' ], 'incomplete');
 
     // no errors/warnings produced
     t.deepEquals(messages.errors, [], 'no errors');
@@ -426,13 +426,13 @@ module.exports.tests.final_token_single_gram = function(test, common) {
       '1'
     ], 'tokens produced');
 
-    // all but last token marked as 'complete'
+    // numeric token stays incomplete for prefix matching
     t.deepEquals(clean.tokens_complete, [
-      'grolmanstrasse', '1'
+      'grolmanstrasse'
     ], 'tokens produced');
 
     // last token marked as 'incomplete'
-    t.deepEquals(clean.tokens_incomplete, [], 'tokens produced');
+    t.deepEquals(clean.tokens_incomplete, ['1'], 'tokens produced');
 
     // no errors/warnings produced
     t.deepEquals(messages.errors, [], 'no errors');
@@ -567,8 +567,77 @@ module.exports.tests.numeric_final_char = function (test, common) {
   });
 };
 
+module.exports.tests.address_housenumber_reorder = function (test, common) {
+  test('address with housenumber and street - housenumber placed last for prefix matching', function (t) {
+
+    var clean = {
+      text: 'Gilarska 86, Warszawa',
+      parsed_text: {
+        subject: '86 Gilarska',
+        street: 'Gilarska',
+        housenumber: '86',
+        admin: 'Warszawa'
+      },
+      layers: ['address']
+    };
+    var messages = sanitizer.sanitize({}, clean);
+
+    t.deepEquals(clean.tokens, ['Gilarska', '86'], 'tokens produced');
+    t.deepEquals(clean.tokens_complete, ['Gilarska'], 'street is complete');
+    t.deepEquals(clean.tokens_incomplete, ['86'], 'housenumber is incomplete for prefix matching');
+
+    t.deepEquals(messages.errors, [], 'no errors');
+    t.deepEquals(messages.warnings, [], 'no warnings');
+
+    t.end();
+  });
+  test('address with alphanumeric housenumber - housenumber placed last', function (t) {
+
+    var clean = {
+      text: 'Gilarska 86C, Warszawa',
+      parsed_text: {
+        subject: '86C Gilarska',
+        street: 'Gilarska',
+        housenumber: '86C',
+        admin: 'Warszawa'
+      },
+      layers: ['address']
+    };
+    var messages = sanitizer.sanitize({}, clean);
+
+    t.deepEquals(clean.tokens, ['Gilarska', '86C'], 'tokens produced');
+    t.deepEquals(clean.tokens_complete, ['Gilarska'], 'street is complete');
+    t.deepEquals(clean.tokens_incomplete, ['86C'], 'housenumber is incomplete');
+
+    t.deepEquals(messages.errors, [], 'no errors');
+    t.deepEquals(messages.warnings, [], 'no warnings');
+
+    t.end();
+  });
+  test('partial street name with admin - stays incomplete for prefix matching', function (t) {
+
+    var clean = {
+      text: 'Szkut, wrocław',
+      parsed_text: {
+        subject: 'Szkut',
+        admin: 'wrocław'
+      }
+    };
+    var messages = sanitizer.sanitize({}, clean);
+
+    t.deepEquals(clean.tokens, ['Szkut'], 'tokens produced');
+    t.deepEquals(clean.tokens_complete, [], 'no complete tokens');
+    t.deepEquals(clean.tokens_incomplete, ['Szkut'], 'subject stays incomplete for prefix matching');
+
+    t.deepEquals(messages.errors, [], 'no errors');
+    t.deepEquals(messages.warnings, [], 'no warnings');
+
+    t.end();
+  });
+};
+
 module.exports.tests.subject_complete = function (test, common) {
-  test('subject complete', function (t) {
+  test('subject with admin - last token stays incomplete for prefix matching', function (t) {
 
     var clean = {
       text: '혜화로, seoul',
@@ -582,8 +651,8 @@ module.exports.tests.subject_complete = function (test, common) {
 
     // tokens produced
     t.deepEquals(clean.tokens, ['혜화로'], 'tokens produced');
-    t.deepEquals(clean.tokens_complete, ['혜화로'], 'complete');
-    t.deepEquals(clean.tokens_incomplete, [], 'incomplete');
+    t.deepEquals(clean.tokens_complete, [], 'complete');
+    t.deepEquals(clean.tokens_incomplete, ['혜화로'], 'incomplete');
 
     // no errors/warnings produced
     t.deepEquals(messages.errors, [], 'no errors');

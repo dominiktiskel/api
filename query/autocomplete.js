@@ -47,6 +47,10 @@ query.score( views.ngrams_last_token_only_multi( adminFields ), 'must' );
 query.score( views.admin_multi_match_first( adminFields ), 'must');
 query.score( views.admin_multi_match_last( adminFields ), 'must');
 
+// address components
+query.score( peliasQuery.view.address('housenumber') );
+query.score( peliasQuery.view.address('street') );
+
 // scoring boost
 query.score( peliasQuery.view.focus( peliasQuery.view.leaf.match_all ) );
 query.score( peliasQuery.view.popularity( peliasQuery.view.leaf.match_all ) );

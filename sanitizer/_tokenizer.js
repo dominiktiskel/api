@@ -14,16 +14,20 @@ const shouldMarkNumericFinalTokenAsComplete = (clean) => {
   // in this situation the numeric suffix is always considered complete
   if (feature.prefix_match_numerals === false) { return true; }
 
+  // parser identified a housenumber — the trailing numeral is a housenumber
+  // that should benefit from prefix/ngram matching (e.g. "86" -> "86C")
+  if (_.has(clean, 'parsed_text.housenumber')) { return false; }
+
   // inspect request layers
   const layers = _.get(clean, 'layers', []);
 
-  // user has not explicitely specified any layers.
+  // user has not explicitly specified any layers.
   // this will include addresses, so disable for the same reasons as below.
   if (!_.isArray(layers) || _.isEmpty(layers)) { return true; }
 
-  // user has explicitely requested the address layer.
-  // avoid prefix matching house number numerals.
-  if (layers.includes('address')) { return true; }
+  // user has explicitly requested the address layer.
+  // allow prefix matching so partial housenumbers match (e.g. "86" -> "86C")
+  if (layers.includes('address')) { return false; }
 
   // default behaviour is to allow prefix matching numerals
   return false;
@@ -60,17 +64,18 @@ function _sanitize( raw, clean ){
     if( _.has(clean.parsed_text, 'subject') ){
       text = clean.parsed_text.subject; // use this string instead
 
+      // for address queries, place the housenumber last so it becomes the
+      // "incomplete" token and benefits from prefix/ngram matching
+      // (e.g. "86" will match "86C" via edge ngrams)
+      if( _.has(clean.parsed_text, 'housenumber') && _.has(clean.parsed_text, 'street') ){
+        text = clean.parsed_text.street + ' ' + clean.parsed_text.housenumber;
+      }
+
       // note: we cannot be sure that the input is complete if a street is
       // detected because the parser will detect partially completed suffixes
       // which are not safe to match against a phrase index
       if( _.has(clean.parsed_text, 'street') ){
         parserConsumedAllTokens = false;
-      }
-
-      // when $subject is not the end of $clean.text
-      // then there must be tokens coming afterwards
-      else if (!clean.text.endsWith(text)) {
-        parserConsumedAllTokens = true;
       }
     }
   }
