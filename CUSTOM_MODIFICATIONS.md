@@ -10,8 +10,8 @@ This fork contains custom modifications to use a customized version of pelias-qu
 ## Version
 
 - **Base version**: pelias/api master (as of December 2025)
-- **Custom version**: v1.0.4
-- **Docker image**: `tiskel/pelias-api:v1.0.4`
+- **Custom version**: v1.0.5
+- **Docker image**: `tiskel/pelias-api:v1.0.5`
 
 ## Changes
 
@@ -289,7 +289,39 @@ Query: `http://localhost:4000/v1/autocomplete?text=Przedszkole%20Cynamonowa`
 
 **Commit**: v1.0.4
 
-### 5. Custom pelias-query Dependency (package.json)
+### 5. Fix Autocomplete Prefix Matching for Addresses and Partial Names (v1.0.5)
+
+**Problem**: Autocomplete did not return results for partial inputs in two key scenarios:
+1. **Partial house numbers**: "Gilarska 86, Warszawa" returned nothing, even though "Gilarska 86C" exists. The token "86" was matched exactly against `phrase.default` where it couldn't match "86C".
+2. **Partial street/place names with admin**: "Szkut, wrocław" returned nothing, even though "Szkutnicza" exists. The tokenizer marked "Szkut" as a complete token (because admin "wrocław" followed), forcing exact phrase matching instead of prefix ngram matching.
+
+**Root cause**: The tokenizer (`sanitizer/_tokenizer.js`) was overly aggressive in marking tokens as "complete". Complete tokens go through exact phrase matching on `phrase.default`, while only "incomplete" tokens benefit from prefix/ngram matching on `name.default` (which has edge ngrams in the index).
+
+**Solution**: Four changes to the tokenizer and autocomplete query:
+
+1. **Removed forced-complete logic for subject+admin** (`sanitizer/_tokenizer.js`): The `else if (!clean.text.endsWith(text))` branch was marking all subject tokens as complete whenever admin text followed. Removed this so the last token stays incomplete for prefix matching. Fixes "Szkut, wrocław" → "Szkutnicza" and "Wrocła, Polska" → "Wrocław".
+
+2. **Rearranged token order for address queries** (`sanitizer/_tokenizer.js`): When the parser detects both `housenumber` and `street`, the subject text is reconstructed as `street + housenumber` (e.g., "Gilarska 86" instead of "86 Gilarska"). This places the housenumber as the last (incomplete) token, enabling prefix/ngram matching. Fixes "Gilarska 86" → "Gilarska 86C".
+
+3. **Allowed prefix matching for numeric housenumber tokens** (`sanitizer/_tokenizer.js`): Changed `shouldMarkNumericFinalTokenAsComplete` to return `false` when the address layer is requested or when the parser detected a housenumber. Previously it returned `true`, forcing exact matching and preventing "86" from matching "86C".
+
+4. **Added address scoring views to autocomplete** (`query/autocomplete.js`): Added `peliasQuery.view.address('housenumber')` and `peliasQuery.view.address('street')` as `should` (boost) clauses. These boost results where the housenumber and street fields match specifically via `address_parts.*`, improving ranking for address queries.
+
+**Files Modified**:
+- `sanitizer/_tokenizer.js` (tokenizer logic: removed else-if, added reorder, fixed numeric complete)
+- `query/autocomplete.js` (added address scoring views)
+- `test/unit/sanitizer/_tokenizer.js` (updated 4 tests, added 3 new tests)
+- `test/unit/fixture/autocomplete_single_character_street.js` (added street address match to fixture)
+
+**Result**:
+- "Gilarska 86, Warszawa" → returns "Gilarska 86C" (partial housenumber)
+- "Szkut, wrocław" → returns "Szkutnicza" (partial street name)
+- "Wrocła, Polska" → returns "Wrocław" (partial city name with admin)
+- Existing queries continue to work unchanged
+
+**Commit**: v1.0.5
+
+### 6. Custom pelias-query Dependency (package.json)
 
 **Problem**: Default pelias-query uses equal boost weights (1) for all admin fields, resulting in poor city matching in autocomplete.
 
@@ -311,7 +343,7 @@ Query: `http://localhost:4000/v1/autocomplete?text=Przedszkole%20Cynamonowa`
 
 **Commit**: `ee326a62` - "Use custom fork of pelias-query with improved locality boost"
 
-### 6. Fixed Windows Line Endings (CRLF) in Dockerfile
+### 7. Fixed Windows Line Endings (CRLF) in Dockerfile
 
 **Problem**: When building on Windows, shell scripts in `bin/` directory contain CRLF line endings, causing "no such file or directory" errors when running on Linux containers.
 
@@ -346,20 +378,20 @@ USER pelias
 
 ## Docker Image Details
 
-**Image name**: `tiskel/pelias-api:v1.0.4`
+**Image name**: `tiskel/pelias-api:v1.0.5`
 
 **Build command**:
 ```bash
 cd api
-docker build -t tiskel/pelias-api:v1.0.4 .
-docker push tiskel/pelias-api:v1.0.4
+docker build -t tiskel/pelias-api:v1.0.5 .
+docker push tiskel/pelias-api:v1.0.5
 ```
 
 **Usage in docker-compose.yml**:
 ```yaml
 services:
   api:
-    image: tiskel/pelias-api:v1.0.4
+    image: tiskel/pelias-api:v1.0.5
     # ... rest of config
 ```
 
