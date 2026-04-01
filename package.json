@@ -54,7 +54,7 @@
     "pelias-logger": "^1.2.0",
     "pelias-microservice-wrapper": "^1.10.0",
     "pelias-model": "^9.0.0",
-    "pelias-parser": "2.2.0",
+    "pelias-parser": "git+https://github.com/dominiktiskel/pelias-parser.git#master",
     "pelias-query": "git+https://github.com/dominiktiskel/query.git#master",
     "pelias-sorting": "^1.7.0",
     "predicates": "^2.0.0",
