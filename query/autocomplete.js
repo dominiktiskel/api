@@ -16,7 +16,10 @@ var views = {
   admin_multi_match_last: require('./view/admin_multi_match_last'),
   phrase_first_tokens_only:   require('./view/phrase_first_tokens_only'),
   max_character_count_layer_filter:   require('./view/max_character_count_layer_filter'),
-  focus_point_filter:         require('./view/focus_point_distance_filter')
+  focus_point_filter:         require('./view/focus_point_distance_filter'),
+  ngrams_name_only_boost:     require('./view/ngrams_name_only_boost'),
+  address_street_boost:       require('./view/address_street_boost'),
+  category_type_boost:        require('./view/category_type_boost')
 };
 
 // add abbrevations for the fields pelias/parser is able to detect.
@@ -32,7 +35,7 @@ var adminFields = placeTypes.concat(['locality_a', 'region_a', 'country_a']);
 // the name of the field to use.
 // this functionality is not enabled unless the 'input:add_name_to_multimatch'
 // variable is set to a non-empty value at query-time.
-adminFields = adminFields.concat(['add_name_to_multimatch', 'add_name_lang_to_multimatch']);
+adminFields = adminFields.concat(['add_name_to_multimatch', 'add_name_lang_to_multimatch', 'add_name_type_to_multimatch']);
 
 //------------------------------
 // autocomplete query
@@ -55,6 +58,17 @@ query.score( peliasQuery.view.address('street') );
 query.score( peliasQuery.view.focus( peliasQuery.view.leaf.match_all ) );
 query.score( peliasQuery.view.popularity( peliasQuery.view.leaf.match_all ) );
 query.score( peliasQuery.view.population( peliasQuery.view.leaf.match_all ) );
+
+// boost documents where the search term appears in the actual name (name.default)
+// rather than only in a type alias (name.type)
+query.score( views.ngrams_name_only_boost );
+
+// boost venues where the query matches their street name
+query.score( views.address_street_boost );
+
+// boost venues whose category matches a detected type word in the query
+query.score( views.category_type_boost );
+
 query.score( views.custom_boosts( config.get('api.customBoosts') ) );
 
 // non-scoring hard filters
@@ -184,7 +198,10 @@ function generateQuery( clean ){
   // value so that the associated field is added to the multimatch query.
   // see code comments above for additional information.
   let isAdminSet = adminFields.some(field => vs.isset('input:' + field));
-  if ( isAdminSet ){ vs.var('input:add_name_to_multimatch', 'enabled'); }
+  if ( isAdminSet ){
+    vs.var('input:add_name_to_multimatch', 'enabled');
+    vs.var('input:add_name_type_to_multimatch', 'enabled');
+  }
 
   // Search in the user lang
   if(clean.lang && _.isString(clean.lang.iso6391)) {

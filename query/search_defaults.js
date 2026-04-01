@@ -19,9 +19,10 @@ module.exports = _.merge({}, peliasQuery.defaults, {
   'ngram:boost': 1,
   'ngram:minimum_should_match': '1<-1 3<-25%',
 
-  'match:main:analyzer': 'peliasQuery',
-  'match:main:field': 'phrase.default',
-  'match:main:minimum_should_match': '1<-1 3<-25%',
+  'multi_match:main:analyzer': 'peliasQuery',
+  'multi_match:main:fields': ['phrase.default', 'phrase.type^0.2'],
+  'multi_match:main:type': 'best_fields',
+  'multi_match:main:minimum_should_match': '1<-1 3<-25%',
 
   'match_phrase:main:analyzer': 'peliasPhrase',
   'match_phrase:main:field': 'phrase.default',

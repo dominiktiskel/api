@@ -10,8 +10,8 @@ This fork contains custom modifications to use a customized version of pelias-qu
 ## Version
 
 - **Base version**: pelias/api master (as of December 2025)
-- **Custom version**: v1.0.5
-- **Docker image**: `tiskel/pelias-api:v1.0.5`
+- **Custom version**: v1.0.6
+- **Docker image**: `tiskel/pelias-api:v1.0.6`
 
 ## Changes
 
@@ -321,7 +321,48 @@ Query: `http://localhost:4000/v1/autocomplete?text=Przedszkole%20Cynamonowa`
 
 **Commit**: v1.0.5
 
-### 6. Custom pelias-query Dependency (package.json)
+### 6. Separate Type Aliases into `name.type` Field (v1.0.6)
+
+**Problem**: The OSM importer adds type names (e.g., "Szpital", "Apteka") as aliases into `name.default` via `setNameAlias('default', ...)`. This means searching "Szpital Katowice" matches ALL hospitals in Katowice equally -- venues with "Szpital" in their real name rank the same as those matching only through a type alias. With a 10-result limit, relevant venues like "Wielospecjalistyczny Szpital TOMMED" get pushed out by closer but less relevant matches.
+
+**Root cause**: Type aliases share the same field (`name.default`) as actual venue names, making it impossible to differentiate actual name matches from type-only matches in query scoring.
+
+**Solution**: Cross-cutting change across OSM importer, API queries, and pelias-query:
+
+1. **OSM Importer** (`openstreetmap/stream/pass2_document_generator.js`): Changed `setNameAlias('default', ...)` to `setNameAlias('type', ...)` for type-related aliases (`osm_type_name`, `osm_type_aliases`, and their `+street` combinations). Non-type aliases (`name_with_street`, IATA codes) remain in `name.default`.
+
+2. **Autocomplete must clause** (`query/view/ngrams_strict.js`): Added `name.type` to the multi_match fields so type aliases still enable matching (filter behavior).
+
+3. **Autocomplete phrase clause** (`query/view/phrase_first_tokens_only.js`): Added `phrase.type^0.2` to fields so type alias matches score lower than actual name matches.
+
+4. **New autocomplete should clause** (`query/view/ngrams_name_only_boost.js`): Scores matches on `name.default` only (without `name.type`) with boost 50, giving venues where the search term appears in the actual name a significant ranking advantage.
+
+5. **Admin multi-match** (`query/autocomplete.js`, `query/autocomplete_defaults.js`): Added `name.type` (boost 0.3) as an additional admin multi-match field so admin queries can also match type aliases.
+
+6. **Search query** (`query/search_pelias_parser.js`, `query/search_defaults.js`): Changed must clause from single-field `match` on `phrase.default` to `multi_match` on `['phrase.default', 'phrase.type^0.2']` so search also finds type alias matches.
+
+7. **Fallback queries** (`pelias-query: layout/FallbackQuery.js`, `layout/StructuredFallbackQuery.js`): Added `phrase.type^0.2` to venue search field lists.
+
+**Elasticsearch schema**: No changes needed -- `name.type` and `phrase.type` are automatically created by existing dynamic templates (`nameGram` for `name.*`, `phrase` for `phrase.*`).
+
+**Files Modified**:
+- `openstreetmap/stream/pass2_document_generator.js` (type aliases → `setNameAlias('type', ...)`)
+- `api/query/autocomplete_defaults.js` (added `ngram:type_field`, `ngram:name_only_boost`, `admin:add_name_type_to_multimatch`)
+- `api/query/view/ngrams_strict.js` (added `name.type` to fields)
+- `api/query/view/phrase_first_tokens_only.js` (added `phrase.type^0.2`)
+- `api/query/view/ngrams_name_only_boost.js` (new file -- should clause for name-only boost)
+- `api/query/autocomplete.js` (wired new view, added `add_name_type_to_multimatch`)
+- `api/query/search_pelias_parser.js` (match → multi_match)
+- `api/query/search_defaults.js` (match:main → multi_match:main)
+- `api/query/text_parser_pelias.js` (match:main:input → multi_match:main:input)
+- `pelias-query: layout/FallbackQuery.js` (added `phrase.type^0.2`)
+- `pelias-query: layout/StructuredFallbackQuery.js` (added `phrase.type^0.2`)
+
+**Deployment**: Requires re-import of OSM data and rebuild of both importer and API Docker images.
+
+**Commit**: v1.0.6
+
+### 7. Custom pelias-query Dependency (package.json)
 
 **Problem**: Default pelias-query uses equal boost weights (1) for all admin fields, resulting in poor city matching in autocomplete.
 
@@ -343,7 +384,7 @@ Query: `http://localhost:4000/v1/autocomplete?text=Przedszkole%20Cynamonowa`
 
 **Commit**: `ee326a62` - "Use custom fork of pelias-query with improved locality boost"
 
-### 7. Fixed Windows Line Endings (CRLF) in Dockerfile
+### 8. Fixed Windows Line Endings (CRLF) in Dockerfile
 
 **Problem**: When building on Windows, shell scripts in `bin/` directory contain CRLF line endings, causing "no such file or directory" errors when running on Linux containers.
 
@@ -378,20 +419,20 @@ USER pelias
 
 ## Docker Image Details
 
-**Image name**: `tiskel/pelias-api:v1.0.5`
+**Image name**: `tiskel/pelias-api:v1.0.6`
 
 **Build command**:
 ```bash
 cd api
-docker build -t tiskel/pelias-api:v1.0.5 .
-docker push tiskel/pelias-api:v1.0.5
+docker build -t tiskel/pelias-api:v1.0.6 .
+docker push tiskel/pelias-api:v1.0.6
 ```
 
 **Usage in docker-compose.yml**:
 ```yaml
 services:
   api:
-    image: tiskel/pelias-api:v1.0.5
+    image: tiskel/pelias-api:v1.0.6
     # ... rest of config
 ```
 

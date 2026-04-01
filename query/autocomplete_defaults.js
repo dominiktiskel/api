@@ -18,6 +18,8 @@ module.exports = _.merge({}, peliasQuery.defaults, {
   'ngram:analyzer': 'peliasQuery',
   'ngram:field': 'name.default',
   'ngram:boost': 100,
+  'ngram:type_field': 'name.type',
+  'ngram:name_only_boost': 80,
 
   'phrase:analyzer': 'peliasQuery',
   'phrase:field': 'phrase.default',
@@ -26,9 +28,9 @@ module.exports = _.merge({}, peliasQuery.defaults, {
 
   'focus:function': 'exp',
   'focus:offset': '0km',
-  'focus:scale': '50km',
+  'focus:scale': '30km',
   'focus:decay': 0.5,
-  'focus:weight': 15,
+  'focus:weight': 8,
 
   'function_score:score_mode': 'avg',
   'function_score:boost_mode': 'replace',
@@ -40,6 +42,7 @@ module.exports = _.merge({}, peliasQuery.defaults, {
   'address:street:analyzer': 'peliasQuery',
   'address:street:field': 'address_parts.street',
   'address:street:boost': 1,
+  'address:street:boost:query': 5,
 
   'address:cross_street:analyzer': 'peliasQuery',
   'address:cross_street:field': 'address_parts.cross_street',
@@ -117,6 +120,8 @@ module.exports = _.merge({}, peliasQuery.defaults, {
   'admin:add_name_to_multimatch:boost': 1.5,
   'admin:add_name_lang_to_multimatch:field': 'name.en',
   'admin:add_name_lang_to_multimatch:boost': 1.5,
+  'admin:add_name_type_to_multimatch:field': 'name.type',
+  'admin:add_name_type_to_multimatch:boost': 0.3,
 
   'popularity:field': 'popularity',
   'popularity:modifier': 'log1p',

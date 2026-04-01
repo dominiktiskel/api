@@ -12,7 +12,7 @@ module.exports = function( vs ) {
 
   const text_length = vs.var('input:name').get().length;
 
-  if (text_length > 8) {
+  if (text_length > 20) {
     return null;
   }
 
@@ -26,7 +26,19 @@ module.exports = function( vs ) {
     5: '900km',
     6: '1200km',
     7: '1600km',
-    8: '2000km'
+    8: '2000km',
+    9: '2000km',
+    10: '2000km',
+    11: '2000km',
+    12: '2500km',
+    13: '2500km',
+    14: '2500km',
+    15: '3000km',
+    16: '3000km',
+    17: '3000km',
+    18: '3000km',
+    19: '3000km',
+    20: '3000km'
   };
 
   const query = {

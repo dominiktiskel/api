@@ -18,7 +18,18 @@ function assignLabel(req, res, next, labelGenerator) {
   }
 
   res.data.forEach(function (result) {
-    result.label = labelGenerator(result, _.get(req, 'clean.lang.iso6393'));
+    var label = labelGenerator(result, _.get(req, 'clean.lang.iso6393'));
+
+    if (result.layer === 'venue' && result.address_parts && result.address_parts.street) {
+      var street = result.address_parts.street;
+      var parts = label.split(', ');
+      if (parts.length >= 2 && parts[1] !== street) {
+        parts.splice(1, 0, street);
+        label = parts.join(', ');
+      }
+    }
+
+    result.label = label;
   });
 
   next();

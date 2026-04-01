@@ -18,7 +18,11 @@ module.exports = function( vs ){
 
   // set the 'input' variable to all but the last token
   vs.var(`multi_match:${view_name}:input`).set( tokens.join(' ') );
-  vs.var(`multi_match:${view_name}:fields`).set(toMultiFields(vs.var('phrase:field').get(), vs.var('lang').get()));
+  var fields = toMultiFields(vs.var('phrase:field').get(), vs.var('lang').get());
+  if (vs.isset('ngram:type_field')) {
+    fields.push(vs.var('ngram:type_field').get().replace('name.', 'phrase.') + '^0.2');
+  }
+  vs.var(`multi_match:${view_name}:fields`).set(fields);
 
   vs.var(`multi_match:${view_name}:analyzer`).set(vs.var('phrase:analyzer').get());
   vs.var(`multi_match:${view_name}:boost`).set(vs.var('phrase:boost').get());

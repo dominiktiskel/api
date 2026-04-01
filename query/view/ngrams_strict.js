@@ -16,7 +16,13 @@ module.exports = function( vs ){
   }
 
   vs.var('multi_match:ngrams_strict:input', vs.var('input:name').get());
-  vs.var('multi_match:ngrams_strict:fields', toMultiFields(vs.var('ngram:field').get(), vs.var('lang').get()));
+
+  var fields = toMultiFields(vs.var('ngram:field').get(), vs.var('lang').get());
+  if (vs.isset('ngram:type_field')) {
+    fields.push(vs.var('ngram:type_field').get());
+  }
+  fields.push('address_parts.street');
+  vs.var('multi_match:ngrams_strict:fields', fields);
 
   vs.var('multi_match:ngrams_strict:analyzer', vs.var('ngram:analyzer').get());
   vs.var('multi_match:ngrams_strict:slop', vs.var('phrase:slop').get());
