@@ -22,7 +22,7 @@ RUN chown -R pelias:pelias ${WORKDIR}
 USER pelias
 
 # Install dependencies as pelias user
-RUN npm install
+RUN npm install --allow-git=all --dangerously-allow-all-scripts
 
 # skip tests for custom build (tests already pass in upstream)
 # RUN npm test
