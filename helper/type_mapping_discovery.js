@@ -82,6 +82,11 @@ module.exports = (tm, done) => {
       }
     }
 
+    // Keep intersection filterable even when discovery misses it or fails.
+    if (typeof tm.ensureIntersectionLayer === 'function') {
+      tm.ensureIntersectionLayer();
+    }
+
     if ('function' === typeof done) { done(); }
   });
 };

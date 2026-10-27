@@ -15,7 +15,7 @@ module.exports.tests.interfaces = function(test, common) {
   });
 
   test('complete layers', function(t) {
-    t.deepEquals(type_mapping.layers, [ 'address', 'venue', 'street', 'country', 'macroregion',
+    t.deepEquals(type_mapping.layers, [ 'address', 'venue', 'street', 'intersection', 'country', 'macroregion',
       'region', 'county', 'localadmin', 'locality', 'borough', 'neighbourhood', 'continent',
       'empire', 'dependency', 'macrocounty', 'macrohood', 'microhood', 'disputed',
       'postalcode', 'ocean', 'marinearea' ]);
@@ -57,6 +57,7 @@ module.exports.tests.interfaces = function(test, common) {
       address: [ 'address' ],
       venue: [ 'venue' ],
       street: [ 'street' ],
+      intersection: [ 'intersection' ],
       country: [ 'country' ],
       macroregion: [ 'macroregion' ],
       region: [ 'region' ],
@@ -96,7 +97,7 @@ module.exports.tests.interfaces = function(test, common) {
 
   test('complete layers by source', function(t) {
     t.deepEquals(type_mapping.layers_by_source, {
-      openstreetmap: [ 'address', 'venue', 'street' ],
+      openstreetmap: [ 'address', 'venue', 'street', 'intersection' ],
       openaddresses: [ 'address' ],
       geonames: [ 'country', 'macroregion', 'region', 'county', 'localadmin',
         'locality', 'borough', 'neighbourhood', 'venue' ],

@@ -124,6 +124,20 @@ TypeMapping.prototype.loadTargets = function( targetsBlock ){
   this.generateMappings();
 };
 
+// OSM intersections are produced by our importer. They must stay filterable
+// even when Elasticsearch discovery fails and the static layer list is kept.
+TypeMapping.prototype.ensureIntersectionLayer = function() {
+  const layers = this.layers_by_source.openstreetmap;
+  if (!Array.isArray(layers)) {
+    this.layers_by_source.openstreetmap = ['intersection'];
+  } else if (layers.indexOf('intersection') === -1) {
+    layers.push('intersection');
+  } else {
+    return;
+  }
+  this.generateMappings();
+};
+
 // load values from either pelias config file or from elasticsearch
 TypeMapping.prototype.load = function( done ){
   // load targets from config file
@@ -155,6 +169,9 @@ TypeMapping.prototype.loadFromConfig = function( done ){
 
   // load targets from config file
   this.loadTargets( peliasConfigTargets );
+  this.ensureIntersectionLayer();
+
+  if( 'function' === typeof done ){ done(); }
 };
 
 // replace the contents of an object or array
